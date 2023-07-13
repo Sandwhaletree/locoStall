@@ -2,7 +2,6 @@ import os
 from flask import Flask, jsonify, request
 import mysql.connector
 from flask_cors import CORS
-import user_module
 
 app = Flask(__name__)
 
@@ -13,26 +12,28 @@ api_base = '/api/'
 
 def query_handle(query):
     db = mysql.connector.connect(
-        host = "DB_HOST",
-        user = "DB_USER", 
-        passwd = "DB_PASSWD", 
-        db = "DB_NAME"
+        host = "db",
+        user = "root", 
+        passwd = "root", 
+        db = "locoStall"
     )
     cursor = db.cursor()
     cursor.execute(query)
     return db, cursor
 
-@app.route( api_base + 'user/<int:Number>', methods=['GET'])
-def get_user_data(Number):
-    return user_module.get_user_data(Number)
 
 
-@app.route( api_base + 'user', methods=['GET'])
-def get_user_list():
-    return user_module.get_user_list()
+# ================================================
+# ENTRANCE
+# ================================================
+@app.route( '/' )
+def api_ready():
+    return 'api ready!'
 
-# [ GET ] http://localhost:5000/api/zh/shop/1
-# 整理成 shop 資料 ＆ menu 資料
+# ================================================
+# SHOP
+# ================================================
+# shop intro & menu
 @app.route( api_base + '<Lang>/shop/<int:Number>', methods=['GET'])
 def get_shop_data(Lang, Number):
     shop_data = []
@@ -64,7 +65,7 @@ def get_shop_data(Lang, Number):
     db.close()
     return jsonify(shop_data), 200
 
-# http://localhost:5000/api/zh/shops
+# shop list
 @app.route( api_base + '<Lang>/shops', methods=['GET'])
 def get_shops(Lang):
     shops = []
@@ -81,7 +82,46 @@ def get_shops(Lang):
     db.close()
     
     return jsonify(shops), 200
- 
+
+# ================================================
+# USER
+# ================================================
+# user data
+@app.route( api_base + 'user/<int:Number>', methods=['GET'])
+def get_user_data(Number):
+    user = []
+    query =  f"SELECT * FROM user WHERE `id`='{Number}'"
+    db, cursor = query_handle(query)
+    results = cursor.fetchall()
+    for row in results:
+        item = {'id': row[0]}
+        item['name'] = row[1]
+        item['mail'] = row[2]
+        item['native_lang'] = row[3]
+        item['line_id'] = row[4]
+        user.append(item)
+    db.close()
+
+    return jsonify(user), 200
+
+# user list
+@app.route( api_base + 'user', methods=['GET'])
+def get_user_list():
+    user = []
+    query =  "SELECT * FROM user"
+    db, cursor = query_handle(query)
+    results = cursor.fetchall()
+    for row in results:
+        item = {'id': row[0]}
+        item['name'] = row[1]
+        item['mail'] = row[2]
+        item['native_lang'] = row[3]
+        item['line_id'] = row[4]
+        user.append(item)
+    db.close()
+
+    return jsonify(user), 200
+
+
 if __name__ == "__main__":
-    # app.run(debug=True, host='0.0.0.0', port=8888)
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=True, host='0.0.0.0', port=8888)
